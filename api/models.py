@@ -4,7 +4,7 @@
 from datetime import datetime
 
 from api.auth import jwt, auth
-from api.constants.const import SQLALCHEMY_DATABASE_URI
+from api.utils.const import SQLALCHEMY_DATABASE_URI
 from flask import g
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow_sqlalchemy import ModelSchema
@@ -131,12 +131,12 @@ class User(db.Model):
             db.session.commit()
 
             # Print admin user status.
-            return ("User was set.")
+            return user
 
         else:
 
             # Print admin user status.
-            print("User already set.")
+            return None
 
     def __repr__(self):
 

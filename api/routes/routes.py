@@ -3,23 +3,30 @@
 
 import logging
 
-import api.constants.errors as error
+import api.utils.errors as error
 from api.auth import auth, refresh_jwt
 from api.models import User, Blacklist
 from api.models import db, session, user_schema
 from flask import Blueprint
-from flask import g, jsonify
+from flask import g, jsonify, make_response
 from flask import request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+from passlib.handlers.md5_crypt import md5_crypt
 
 route_page = Blueprint("route_page", __name__)
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 @route_page.before_app_first_request
 def setup():
     # Recreate database each time for demo
-    User.create(username='sa_username', password='sa_password', email='sa_email@example.com', user_role='super_admin')
-    User.create(username='admin_username', password='admin_password', email='admin_email@example.com', user_role='admin')
-    User.create(username='test_username', password='test_password', email='test_email@example.com', user_role='user')
+    User.create(username='sa_username', password=md5_crypt.encrypt('sa_password'), email='sa_email@example.com', user_role='super_admin')
+    User.create(username='admin_username', password=md5_crypt.encrypt('admin_password'), email='admin_email@example.com', user_role='admin')
+    User.create(username='test_username', password=md5_crypt.encrypt('test_password'), email='test_email@example.com', user_role='user')
+    print "Users added."
 
 
 @route_page.route('/v1/auth/register', methods=['POST'])
@@ -49,7 +56,7 @@ def register():
         return jsonify(error.ALREADY_EXIST)
 
     # Create a new user.
-    user = User(username=username, password=password, email=email)
+    user = User(username=username, password=md5_crypt.encrypt(password), email=email)
 
     # Add user to session.
     db.session.add(user)
@@ -83,13 +90,11 @@ def login():
             return jsonify(error.INVALID_INPUT_422)
 
         # Get user if it is existed.
-        user = User.query.filter_by(email=email, password=password).first()
+        user = User.query.filter_by(email=email, password=md5_crypt.encrypt(password)).first()
 
         # Check if user is not existed.
         if user is None:
             return jsonify(error.DOES_NOT_EXIST)
-
-        print user.user_role
 
         if user.user_role == 'user':
 
@@ -109,7 +114,7 @@ def login():
             access_token = user.generate_auth_token(2)
 
         else:
-            return jsonify(error.PERMISSON_DENIED)
+            return jsonify(error.PERMISSION_DENIED)
 
         # Generate refresh token.
         refresh_token = refresh_jwt.dumps({'email': email})
@@ -207,6 +212,7 @@ def password_reset():
 
 @route_page.route('/data', methods=['GET'])
 @auth.login_required
+@limiter.limit("100 per day")
 def data_get():
 
     result = session.query(User).all()
@@ -214,4 +220,4 @@ def data_get():
 
     print user_schema.dump(result).data
 
-    return jsonify("Data OK.")
+    return make_response(jsonify(error.PERMISSION_DENIED['message']), error.PERMISSION_DENIED['code'])

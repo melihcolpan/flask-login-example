@@ -1,10 +1,11 @@
-from api import app
-from flask_testing import TestCase
-from api.models import db
-from api.models import User
-import unittest
 import json
-from api.constants.const import SQLALCHEMY_DATABASE_URI
+import unittest
+
+from api import app
+from api.models import User
+from api.models import db
+from api.utils.const import SQLALCHEMY_DATABASE_URI
+from flask_testing import TestCase
 
 
 class MyTest(TestCase):
@@ -34,7 +35,7 @@ class DBTest(TestCase):
 
     def test_something(self):
         user = User(username='sa_username', password='sa_password', email='sa_email@example.com',
-                    user_role='superadmin')
+                    user_role='super_admin')
         db.session.add(user)
         db.session.commit()
         assert user in db.session
@@ -45,7 +46,7 @@ class LoginTest(unittest.TestCase):
         with app.app_context():
             db.create_all()
             user = User(username='sa_username', password='sa_password',
-                        email='sa_email@example.com', user_role='superadmin')
+                        email='sa_email@example.com', user_role='super_admin')
             db.session.add(user)
             db.session.commit()
             self.app = app.test_client()

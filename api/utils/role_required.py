@@ -4,9 +4,11 @@
 import functools
 import logging
 
-import api.constants.errors as error
+import api.utils.errors as error
 from api.auth import jwt
 from flask import request
+
+
 # from werkzeug.datastructures import Authorization
 
 
