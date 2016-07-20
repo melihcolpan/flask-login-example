@@ -59,6 +59,7 @@ http POST :5000/v1/auth/login email=sa_email@example.com password=sa_password
 NOT YET
 http GET :5000/user_add Authorization:"bearer ACCESS_TOKEN"
 
+NOT YET
 http GET :5000/users Authorization:"Bearer ACCESS_TOKEN" usernames==test_username,admin_username emails==test_email@example.com,admin_email@example.com start_date==01.01.1993 end_date==01.01.2050
 ```
 
@@ -128,6 +129,7 @@ curl -H "Content-Type: application/json" --data '{"password":"sa_password", "ema
 NOT YET
 curl -H "Content-Type: application/json" -H "Authorization: Bearer ACCESS_TOKEN" http://localhost:5000/user_add
 
+NOT YET
 curl -X GET 'localhost:5000/users?usernames=test_username,admin_username&emails=test_email@example.com,admin_email@example.com&start_date=01.01.1993&end_date=01.01.2050' -H "Content-Type: application/json" -H "Authorization: Bearer ACCESS_TOKEN" 
 ```
 
