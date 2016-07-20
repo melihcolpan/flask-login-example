@@ -11,3 +11,4 @@ DOES_NOT_EXIST = {"message": "Does not exists.", "code": 409}
 NOT_ADMIN = {"message": "Admin permission denied.", "code": 999}
 HEADER_NOT_FOUND = {"message": "Header does not exists.", "code": 999}
 PERMISSION_DENIED = {"message": "User permissions denied.", "code": 999}
+CREDENTIALS_ERROR_999 = {"message": "Credentials error.", "code": 999}

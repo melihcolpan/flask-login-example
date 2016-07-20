@@ -15,6 +15,7 @@ from flask_limiter.util import get_remote_address
 
 from passlib.handlers.md5_crypt import md5_crypt
 
+
 route_page = Blueprint("route_page", __name__)
 
 limiter = Limiter(key_func=get_remote_address)
@@ -87,14 +88,24 @@ def login():
 
         # Check if user information is none.
         if email is None or password is None:
+
+            # Return error message.
             return jsonify(error.INVALID_INPUT_422)
 
         # Get user if it is existed.
-        user = User.query.filter_by(email=email, password=md5_crypt.encrypt(password)).first()
+        user = User.query.filter_by(email=email).first()
 
         # Check if user is not existed.
         if user is None:
+
+            # Return error message.
             return jsonify(error.DOES_NOT_EXIST)
+
+        # User password verify.
+        if not user.verify_password_hash(password):
+
+            # Return error message.
+            return jsonify(error.CREDENTIALS_ERROR_999)
 
         if user.user_role == 'user':
 

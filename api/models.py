@@ -13,6 +13,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from passlib.handlers.md5_crypt import md5_crypt
+
 
 engine = create_engine(SQLALCHEMY_DATABASE_URI)
 Base = declarative_base()
@@ -137,6 +139,14 @@ class User(db.Model):
 
             # Print admin user status.
             return None
+
+    @staticmethod
+    def generate_password_hash(password):
+        hash = md5_crypt.encrypt(password)
+        return hash
+
+    def verify_password_hash(self, password):
+        return md5_crypt.verify(password, self.password)
 
     def __repr__(self):
 
