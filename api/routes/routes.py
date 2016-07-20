@@ -206,7 +206,7 @@ def password_reset():
         user = User.query.filter_by(email=g.user).first()
 
         # Check if user password does not match with old password.
-        if user.password != old_pass:
+        if not user.verify_password_hash(old_pass, user.password):
 
             # Return does not match status.
             return jsonify({'status': 'old password does not match.'})
