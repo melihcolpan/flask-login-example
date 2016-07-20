@@ -18,6 +18,12 @@ engine = create_engine(SQLALCHEMY_DATABASE_URI)
 Base = declarative_base()
 db = SQLAlchemy()
 
+Base.metadata.bind = engine
+Base.metadata.create_all()
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
 
 class User(db.Model):
 
@@ -142,6 +148,7 @@ class User(db.Model):
 class UserSchema(ModelSchema):
     class Meta:
         model = User
+user_schema = UserSchema(many=True)
 
 
 class Blacklist(db.Model):
@@ -160,11 +167,3 @@ class Blacklist(db.Model):
         # This is only for representation how you want to see refresh tokens after query.
         return "<User(id='%s', refresh_token='%s', status='invalidated.')>" % (
                       self.id, self.refresh_token)
-
-Base.metadata.bind = engine
-Base.metadata.create_all()
-
-Session = sessionmaker(bind=engine)
-session = Session()
-
-user_schema = UserSchema(many=True)

@@ -4,7 +4,7 @@
 import functools
 import logging
 
-import api.const.errors as error
+import api.constants.errors as error
 from api.auth import jwt
 from flask import request
 # from werkzeug.datastructures import Authorization
