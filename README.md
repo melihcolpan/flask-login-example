@@ -4,7 +4,7 @@
 
 ```
 git clone https://github.com/melihcolpan/flask-restful-login
-cd flask-restful-login
+cd flask-login-example
 virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
