@@ -53,6 +53,12 @@ class User(db.Model):
     # Unless otherwise stated default role is user.
     user_role = db.Column(db.String, Enum('super_admin', 'admin', 'user', name='user_roles'), default='user')
 
+    def __init__(self, username, password, email, user_role='user'):
+        self.username = username
+        self.password = md5_crypt.encrypt(password)
+        self.email = email
+        self.user_role = user_role
+
     def as_dict(self):
         return {'username': self.username, 'email': self.email, 'created': self.created, 'user_role': self.user_role}
 
@@ -117,7 +123,7 @@ class User(db.Model):
 
         try:
             # Create admin user if it does not existed.
-            user = User(username=username, password=md5_crypt.encrypt(password), email=email, user_role=user_role)
+            user = User(username=username, password=password, email=email, user_role=user_role)
 
             # Add user to session.
             db.session.add(user)
