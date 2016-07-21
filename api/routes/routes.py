@@ -4,12 +4,14 @@
 import logging
 
 import api.utils.responses as resp
+from api.models.user_model import User
+from api.models.blacklist_model import Blacklist
+from api.models.user_model import session, user_schema
+from api.utils.auth import auth, refresh_jwt
+from api.utils.database import db
 from api.utils.responses import m_return
-from api.auth import auth, refresh_jwt
-from api.user_model import User, Blacklist
-from api.user_model import db, session, user_schema
 from flask import Blueprint
-from flask import g, jsonify, make_response
+from flask import g
 from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -176,7 +178,7 @@ def refresh_token():
     if ref is not None:
 
         # Return invalidated token.
-        return  m_return(resp.ALREADY_INVALIDATED[0], resp.ALREADY_INVALIDATED[1])
+        return m_return(resp.ALREADY_INVALIDATED[0], resp.ALREADY_INVALIDATED[1])
 
     try:
         # Generate new token.

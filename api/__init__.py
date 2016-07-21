@@ -1,4 +1,4 @@
-from api.user_model import db
+from api.models.user_model import db
 from api.routes.routes import limiter
 from api.routes.routes import route_page
 from api.utils.const import SQLALCHEMY_DATABASE_URI

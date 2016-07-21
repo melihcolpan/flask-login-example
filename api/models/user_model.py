@@ -1,27 +1,25 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import logging
 from datetime import datetime
 
-from api.auth import jwt, auth
+from api.utils.auth import jwt, auth
 from api.utils.const import SQLALCHEMY_DATABASE_URI
-from flask import g, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from api.utils.database import db
+from flask import g
 from marshmallow_sqlalchemy import ModelSchema
+from passlib.handlers.md5_crypt import md5_crypt
 from sqlalchemy import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import api.utils.responses as error
-import logging
-
-from passlib.handlers.md5_crypt import md5_crypt
 
 
 engine = create_engine(SQLALCHEMY_DATABASE_URI)
 Base = declarative_base()
-db = SQLAlchemy()
+
 
 Base.metadata.bind = engine
 Base.metadata.create_all()
@@ -172,21 +170,3 @@ class UserSchema(ModelSchema):
     class Meta:
         model = User
 user_schema = UserSchema(many=True)
-
-
-class Blacklist(db.Model):
-
-    # Generates default class name for table. For changing use
-    # __tablename__ = 'users'
-
-    # Blacklist id.
-    id = db.Column(db.Integer, primary_key=True)
-
-    # Blacklist invalidated refresh tokens.
-    refresh_token = db.Column(db.String(length=255))
-
-    def __repr__(self):
-
-        # This is only for representation how you want to see refresh tokens after query.
-        return "<User(id='%s', refresh_token='%s', status='invalidated.')>" % (
-                      self.id, self.refresh_token)
