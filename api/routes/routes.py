@@ -41,8 +41,8 @@ def register():
         # Logging the error.
         logging.warning(why)
 
-        # Return missed parameter error.
-        return make_response(jsonify({'error': error.MISSED_PARAMETERS}), error.MISSED_PARAMETERS.code)
+        # Return missed parameter error. Response 0 is message, 1 is http response code.
+        return make_response(jsonify(error.MISSED_PARAMETERS[0]), error.MISSED_PARAMETERS[1])
 
     # Create a new user.
     user = User.create(username=username, password=password, email=email, user_role='user')
@@ -50,15 +50,15 @@ def register():
     # Check if user is already existed.
     if user is None:
 
-        # Return error.
-        return make_response(jsonify({'error': error.ALREADY_EXIST}), error.ALREADY_EXIST.code)
+        # Return error. Response 0 is message, 1 is http response code.
+        return make_response(jsonify(error.ALREADY_EXIST[0]), error.ALREADY_EXIST[1])
 
-    # Return success if registration is completed.
-    return make_response(jsonify({'status': error.SUCCESS.message}), error.SUCCESS.code)
+    # Return success if registration is completed. Response 0 is message, 1 is http response code.
+    return make_response(jsonify(error.SUCCESS[0]), error.SUCCESS[1])
 
 
 @route_page.route('/v1/auth/login', methods=['POST'])
-@limiter.limit("2 per day")
+@limiter.limit("5 per minute")
 def login():
 
         try:
@@ -70,8 +70,8 @@ def login():
             # Log input strip or etc. errors.
             logging.info("Email or password is wrong. " + str(why))
 
-            # Return invalid input error.
-            return jsonify(error.INVALID_INPUT_422)
+            # Return invalid input error. Response 0 is message, 1 is http response code.
+            return make_response(jsonify(error.INVALID_INPUT_422[0]), error.INVALID_INPUT_422[1])
 
         # Get user if it is existed.
         user = User.query.filter_by(email=email).first()
@@ -80,14 +80,15 @@ def login():
         if user is None:
 
             # Return error message.
-            return jsonify(error.DOES_NOT_EXIST)
+            return make_response(jsonify(error.DOES_NOT_EXIST[0]), error.DOES_NOT_EXIST[1])
 
         # User password verify.
         if not user.verify_password_hash(password):
 
             # Return error message.
-            return jsonify(error.CREDENTIALS_ERROR_999)
+            return make_response(jsonify(error.CREDENTIALS_ERROR_999[0]), error.CREDENTIALS_ERROR_999[1])
 
+        # Check if user does not have admin or super admin permissions.
         if user.user_role == 'user':
 
             # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 1 or 0.
@@ -108,13 +109,14 @@ def login():
         else:
 
             # Return permission denied error.
-            return jsonify(error.PERMISSION_DENIED)
+            return make_response(jsonify(error.PERMISSION_DENIED[0]), error.PERMISSION_DENIED[1])
 
         # Generate refresh token.
         m_refresh_token = refresh_jwt.dumps({'email': email})
 
         # Return access token and refresh token.
-        return jsonify({'access_token': access_token, 'refresh_token': m_refresh_token})
+        return make_response(jsonify({'access_token': access_token, 'refresh_token': m_refresh_token}),
+                             error.SUCCESS[1])
 
 
 @route_page.route('/v1/auth/logout', methods=['POST'])
@@ -130,14 +132,15 @@ def logout():
         # Logging the error.
         logging.warning(why)
 
-        return jsonify(error.INVALID_INPUT_422)
+        # Return invalid input error.
+        return make_response(jsonify(error.INVALID_INPUT_422))
 
     # Get if the refresh token is in blacklist
     ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
 
     # Check refresh token is existed.
     if ref is not None:
-        return jsonify({'status': 'already invalidated', 'refresh_token': m_refresh_token})
+        return make_response(jsonify({'status': 'already invalidated', 'refresh_token': m_refresh_token}), 200)
 
     # Create a blacklist refresh token.
     blacklist_refresh_token = Blacklist(refresh_token=m_refresh_token)
@@ -149,7 +152,7 @@ def logout():
     db.session.commit()
 
     # Return status of refresh token.
-    return jsonify({'status': 'invalidated', 'refresh_token': m_refresh_token})
+    return make_response(jsonify({'status': 'invalidated', 'refresh_token': m_refresh_token}), 200)
 
 
 @route_page.route('/v1/auth/refresh', methods=['POST'])
@@ -164,7 +167,7 @@ def refresh_token():
         # Logging the error.
         logging.warning(why)
 
-        return jsonify(error.INVALID_INPUT_422)
+        return make_response(jsonify(error.INVALID_INPUT_422[0]), error.INVALID_INPUT_422[1])
 
     # Get if the refresh token is in blacklist.
     ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
@@ -185,7 +188,7 @@ def refresh_token():
         logging.error(why)
 
         # If it does not generated return false.
-        return jsonify(False)
+        return make_response(jsonify(error.CREDENTIALS_ERROR_999[0]), error.CREDENTIALS_ERROR_999[1])
 
     # Create user not to add db. For generating token.
     user = User(email=data['email'])
@@ -194,7 +197,7 @@ def refresh_token():
     token = user.generate_auth_token(0)
 
     # Return new access token.
-    return jsonify({'access_token': token})
+    return make_response(jsonify({'access_token': token}), 200)
 
 
 @route_page.route('/v1/auth/password_reset', methods=['POST'])
@@ -211,7 +214,7 @@ def password_reset():
         if not user.verify_password_hash(old_pass):
 
             # Return does not match status.
-            return jsonify({'status': 'old password does not match.'})
+            return make_response(jsonify(error.OLD_PASS_DOES_NOT_MATCH[0]), error.OLD_PASS_DOES_NOT_MATCH[1])
 
         # Update password.
         user.password = md5_crypt.encrypt(new_pass)
@@ -220,7 +223,7 @@ def password_reset():
         db.session.commit()
 
         # Return success status.
-        return jsonify({'status': 'password changed.'})
+        return make_response(jsonify(error.SUCCESS[0]), error.SUCCESS[1])
 
 
 @route_page.route('/data', methods=['GET'])
