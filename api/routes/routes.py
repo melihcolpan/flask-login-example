@@ -5,14 +5,13 @@ import logging
 
 import api.utils.errors as error
 from api.auth import auth, refresh_jwt
-from api.models import User, Blacklist
-from api.models import db, session, user_schema
+from api.user_model import User, Blacklist
+from api.user_model import db, session, user_schema
 from flask import Blueprint
 from flask import g, jsonify, make_response
 from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-
 from passlib.handlers.md5_crypt import md5_crypt
 
 
@@ -24,10 +23,10 @@ limiter = Limiter(key_func=get_remote_address)
 @route_page.before_app_first_request
 def setup():
     # Recreate database each time for demo
-    User.create(username='sa_username', password=md5_crypt.encrypt('sa_password'), email='sa_email@example.com', user_role='super_admin')
-    User.create(username='admin_username', password=md5_crypt.encrypt('admin_password'), email='admin_email@example.com', user_role='admin')
-    User.create(username='test_username', password=md5_crypt.encrypt('test_password'), email='test_email@example.com', user_role='user')
-    print "Users added."
+    User.create(username='sa_username', password='sa_password', email='sa_email@example.com', user_role='super_admin')
+    User.create(username='admin_username', password='admin_password', email='admin_email@example.com', user_role='admin')
+    User.create(username='test_username', password='test_password', email='test_email@example.com', user_role='user')
+    print "Default users added."
 
 
 @route_page.route('/v1/auth/register', methods=['POST'])
@@ -39,44 +38,32 @@ def register():
                                     request.json.get('email').strip()
     except Exception as why:
 
-        # Log input strip or etc. errors.
-        logging.info("Username, password or email is wrong. " + str(why))
+        # Logging the error.
+        logging.warning(why)
 
-        # Return invalid input error.
-        return jsonify(error.INVALID_INPUT_422)
-
-    # Check if any field is none.
-    if username is None or password is None or email is None:
-        return jsonify(error.INVALID_INPUT_422)
-
-    # Get user if it is existed.
-    user = User.query.filter_by(email=email).first()
-
-    # Check if user is existed.
-    if user is not None:
-        return jsonify(error.ALREADY_EXIST)
+        # Return missed parameter error.
+        return make_response(jsonify({'error': error.MISSED_PARAMETERS}), error.MISSED_PARAMETERS.code)
 
     # Create a new user.
-    user = User(username=username, password=md5_crypt.encrypt(password), email=email)
+    user = User.create(username=username, password=password, email=email, user_role='user')
 
-    # Add user to session.
-    db.session.add(user)
+    # Check if user is already existed.
+    if user is None:
 
-    # Commit session.
-    db.session.commit()
+        # Return error.
+        return make_response(jsonify({'error': error.ALREADY_EXIST}), error.ALREADY_EXIST.code)
 
     # Return success if registration is completed.
-    return jsonify({'status': 'success'})
+    return make_response(jsonify({'status': error.SUCCESS.message}), error.SUCCESS.code)
 
 
 @route_page.route('/v1/auth/login', methods=['POST'])
+@limiter.limit("2 per day")
 def login():
 
         try:
-            # Get user email and password.
+            # Get user email and password. Was not checked cause none type has no attribute strip.
             email, password = request.json.get('email').strip(), request.json.get('password').strip()
-
-            print email, password
 
         except Exception as why:
 
@@ -84,12 +71,6 @@ def login():
             logging.info("Email or password is wrong. " + str(why))
 
             # Return invalid input error.
-            return jsonify(error.INVALID_INPUT_422)
-
-        # Check if user information is none.
-        if email is None or password is None:
-
-            # Return error message.
             return jsonify(error.INVALID_INPUT_422)
 
         # Get user if it is existed.
@@ -125,30 +106,41 @@ def login():
             access_token = user.generate_auth_token(2)
 
         else:
+
+            # Return permission denied error.
             return jsonify(error.PERMISSION_DENIED)
 
         # Generate refresh token.
-        refresh_token = refresh_jwt.dumps({'email': email})
+        m_refresh_token = refresh_jwt.dumps({'email': email})
 
         # Return access token and refresh token.
-        return jsonify({'access_token': access_token, 'refresh_token': refresh_token})
+        return jsonify({'access_token': access_token, 'refresh_token': m_refresh_token})
 
 
 @route_page.route('/v1/auth/logout', methods=['POST'])
+@auth.login_required
 def logout():
 
-    # Get refresh token.
-    refresh_token = request.json.get('refresh_token')
+    try:
+        # Get refresh token.
+        m_refresh_token = request.json.get('refresh_token')
+
+    except Exception as why:
+
+        # Logging the error.
+        logging.warning(why)
+
+        return jsonify(error.INVALID_INPUT_422)
 
     # Get if the refresh token is in blacklist
-    ref = Blacklist.query.filter_by(refresh_token=refresh_token).first()
+    ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
 
     # Check refresh token is existed.
     if ref is not None:
-        return jsonify({'status': 'already invalidated', 'refresh_token': refresh_token})
+        return jsonify({'status': 'already invalidated', 'refresh_token': m_refresh_token})
 
     # Create a blacklist refresh token.
-    blacklist_refresh_token = Blacklist(refresh_token=refresh_token)
+    blacklist_refresh_token = Blacklist(refresh_token=m_refresh_token)
 
     # Add refresh token to session.
     db.session.add(blacklist_refresh_token)
@@ -157,46 +149,56 @@ def logout():
     db.session.commit()
 
     # Return status of refresh token.
-    return jsonify({'status': 'invalidated', 'refresh_token': refresh_token})
+    return jsonify({'status': 'invalidated', 'refresh_token': m_refresh_token})
 
 
 @route_page.route('/v1/auth/refresh', methods=['POST'])
 def refresh_token():
 
+    try:
         # Get refresh token.
-        refresh_token = request.json.get('refresh_token')
+        m_refresh_token = request.json.get('refresh_token')
 
-        # Get if the refresh token is in blacklist.
-        ref = Blacklist.query.filter_by(refresh_token=refresh_token).first()
+    except Exception as why:
 
-        # Check refresh token is existed.
-        if ref is not None:
+        # Logging the error.
+        logging.warning(why)
 
-            # Return invalidated token.
-            return jsonify({'status': 'invalidated'})
+        return jsonify(error.INVALID_INPUT_422)
 
-        try:
-            # Generate new token.
-            data = refresh_jwt.loads(refresh_token)
+    # Get if the refresh token is in blacklist.
+    ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
 
-        except Exception as why:
-            # Log the error.
-            logging.error(why)
+    # Check refresh token is existed.
+    if ref is not None:
 
-            # If it does not generated return false.
-            return jsonify(False)
+        # Return invalidated token.
+        return jsonify({'status': 'invalidated'})
 
-        # Create user not to add db. For generating token.
-        user = User(email=data['email'])
+    try:
+        # Generate new token.
+        data = refresh_jwt.loads(m_refresh_token)
 
-        # New token generate.
-        token = user.generate_auth_token(False)
+    except Exception as why:
 
-        # Return new access token.
-        return jsonify({'access_token': token})
+        # Log the error.
+        logging.error(why)
+
+        # If it does not generated return false.
+        return jsonify(False)
+
+    # Create user not to add db. For generating token.
+    user = User(email=data['email'])
+
+    # New token generate.
+    token = user.generate_auth_token(0)
+
+    # Return new access token.
+    return jsonify({'access_token': token})
 
 
 @route_page.route('/v1/auth/password_reset', methods=['POST'])
+@auth.login_required
 def password_reset():
 
         # Get old and new passwords.
@@ -206,13 +208,13 @@ def password_reset():
         user = User.query.filter_by(email=g.user).first()
 
         # Check if user password does not match with old password.
-        if not user.verify_password_hash(old_pass, user.password):
+        if not user.verify_password_hash(old_pass):
 
             # Return does not match status.
             return jsonify({'status': 'old password does not match.'})
 
         # Update password.
-        user.password = new_pass
+        user.password = md5_crypt.encrypt(new_pass)
 
         # Commit session.
         db.session.commit()
@@ -231,4 +233,5 @@ def data_get():
 
     print user_schema.dump(result).data
 
-    return make_response(jsonify(error.PERMISSION_DENIED['message']), error.PERMISSION_DENIED['code'])
+    # return make_response(jsonify(error.PERMISSION_DENIED['message']), error.PERMISSION_DENIED['code'])
+    return make_response(jsonify('test'), 999)

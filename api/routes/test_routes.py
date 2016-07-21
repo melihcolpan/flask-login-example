@@ -2,8 +2,8 @@ import json
 import unittest
 
 from api import app
-from api.models import User
-from api.models import db
+from api.user_model import User
+from api.user_model import db
 from api.utils.const import SQLALCHEMY_DATABASE_URI
 from flask_testing import TestCase
 
