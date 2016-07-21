@@ -4,7 +4,7 @@
 import functools
 import logging
 
-import api.utils.errors as error
+import api.utils.responses as error
 from api.auth import jwt
 from flask import request
 

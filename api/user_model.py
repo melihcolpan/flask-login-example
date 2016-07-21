@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import api.utils.errors as error
+import api.utils.responses as error
 import logging
 
 from passlib.handlers.md5_crypt import md5_crypt

@@ -3,7 +3,8 @@
 
 import logging
 
-import api.utils.errors as error
+import api.utils.responses as resp
+from api.utils.responses import m_return
 from api.auth import auth, refresh_jwt
 from api.user_model import User, Blacklist
 from api.user_model import db, session, user_schema
@@ -42,7 +43,7 @@ def register():
         logging.warning(why)
 
         # Return missed parameter error. Response 0 is message, 1 is http response code.
-        return make_response(jsonify(error.MISSED_PARAMETERS[0]), error.MISSED_PARAMETERS[1])
+        return m_return(resp.MISSED_PARAMETERS[0], resp.MISSED_PARAMETERS[1])
 
     # Create a new user.
     user = User.create(username=username, password=password, email=email, user_role='user')
@@ -51,10 +52,10 @@ def register():
     if user is None:
 
         # Return error. Response 0 is message, 1 is http response code.
-        return make_response(jsonify(error.ALREADY_EXIST[0]), error.ALREADY_EXIST[1])
+        return m_return(resp.ALREADY_EXIST[0], resp.ALREADY_EXIST[1])
 
     # Return success if registration is completed. Response 0 is message, 1 is http response code.
-    return make_response(jsonify(error.SUCCESS[0]), error.SUCCESS[1])
+    return m_return(resp.SUCCESS[0], resp.SUCCESS[1])
 
 
 @route_page.route('/v1/auth/login', methods=['POST'])
@@ -71,7 +72,7 @@ def login():
             logging.info("Email or password is wrong. " + str(why))
 
             # Return invalid input error. Response 0 is message, 1 is http response code.
-            return make_response(jsonify(error.INVALID_INPUT_422[0]), error.INVALID_INPUT_422[1])
+            return m_return(resp.INVALID_INPUT_422[0], resp.INVALID_INPUT_422[1])
 
         # Get user if it is existed.
         user = User.query.filter_by(email=email).first()
@@ -80,13 +81,13 @@ def login():
         if user is None:
 
             # Return error message.
-            return make_response(jsonify(error.DOES_NOT_EXIST[0]), error.DOES_NOT_EXIST[1])
+            return m_return(resp.DOES_NOT_EXIST[0], resp.DOES_NOT_EXIST[1])
 
         # User password verify.
         if not user.verify_password_hash(password):
 
             # Return error message.
-            return make_response(jsonify(error.CREDENTIALS_ERROR_999[0]), error.CREDENTIALS_ERROR_999[1])
+            return m_return(resp.CREDENTIALS_ERROR_999[0], resp.CREDENTIALS_ERROR_999[1])
 
         # Check if user does not have admin or super admin permissions.
         if user.user_role == 'user':
@@ -109,14 +110,13 @@ def login():
         else:
 
             # Return permission denied error.
-            return make_response(jsonify(error.PERMISSION_DENIED[0]), error.PERMISSION_DENIED[1])
+            return m_return(resp.PERMISSION_DENIED[0], resp.PERMISSION_DENIED[1])
 
         # Generate refresh token.
         m_refresh_token = refresh_jwt.dumps({'email': email})
 
         # Return access token and refresh token.
-        return make_response(jsonify({'access_token': access_token, 'refresh_token': m_refresh_token}),
-                             error.SUCCESS[1])
+        return m_return({'access_token': access_token, 'refresh_token': m_refresh_token}, resp.SUCCESS[1])
 
 
 @route_page.route('/v1/auth/logout', methods=['POST'])
@@ -133,14 +133,14 @@ def logout():
         logging.warning(why)
 
         # Return invalid input error.
-        return make_response(jsonify(error.INVALID_INPUT_422))
+        return m_return(resp.INVALID_INPUT_422[0], resp.INVALID_INPUT_422[1])
 
     # Get if the refresh token is in blacklist
     ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
 
     # Check refresh token is existed.
     if ref is not None:
-        return make_response(jsonify({'status': 'already invalidated', 'refresh_token': m_refresh_token}), 200)
+        return m_return({'status': 'already invalidated', 'refresh_token': m_refresh_token}, 200)
 
     # Create a blacklist refresh token.
     blacklist_refresh_token = Blacklist(refresh_token=m_refresh_token)
@@ -152,7 +152,7 @@ def logout():
     db.session.commit()
 
     # Return status of refresh token.
-    return make_response(jsonify({'status': 'invalidated', 'refresh_token': m_refresh_token}), 200)
+    return m_return({'status': 'invalidated', 'refresh_token': m_refresh_token}, 200)
 
 
 @route_page.route('/v1/auth/refresh', methods=['POST'])
@@ -167,7 +167,7 @@ def refresh_token():
         # Logging the error.
         logging.warning(why)
 
-        return make_response(jsonify(error.INVALID_INPUT_422[0]), error.INVALID_INPUT_422[1])
+        return m_return(resp.INVALID_INPUT_422[0], resp.INVALID_INPUT_422[1])
 
     # Get if the refresh token is in blacklist.
     ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
@@ -176,7 +176,7 @@ def refresh_token():
     if ref is not None:
 
         # Return invalidated token.
-        return jsonify({'status': 'invalidated'})
+        return  m_return(resp.ALREADY_INVALIDATED[0], resp.ALREADY_INVALIDATED[1])
 
     try:
         # Generate new token.
@@ -188,7 +188,7 @@ def refresh_token():
         logging.error(why)
 
         # If it does not generated return false.
-        return make_response(jsonify(error.CREDENTIALS_ERROR_999[0]), error.CREDENTIALS_ERROR_999[1])
+        return m_return(resp.CREDENTIALS_ERROR_999[0], resp.CREDENTIALS_ERROR_999[1])
 
     # Create user not to add db. For generating token.
     user = User(email=data['email'])
@@ -197,7 +197,7 @@ def refresh_token():
     token = user.generate_auth_token(0)
 
     # Return new access token.
-    return make_response(jsonify({'access_token': token}), 200)
+    return m_return({'access_token': token}, 200)
 
 
 @route_page.route('/v1/auth/password_reset', methods=['POST'])
@@ -214,7 +214,7 @@ def password_reset():
         if not user.verify_password_hash(old_pass):
 
             # Return does not match status.
-            return make_response(jsonify(error.OLD_PASS_DOES_NOT_MATCH[0]), error.OLD_PASS_DOES_NOT_MATCH[1])
+            return m_return(resp.OLD_PASS_DOES_NOT_MATCH[0], resp.OLD_PASS_DOES_NOT_MATCH[1])
 
         # Update password.
         user.password = md5_crypt.encrypt(new_pass)
@@ -223,7 +223,7 @@ def password_reset():
         db.session.commit()
 
         # Return success status.
-        return make_response(jsonify(error.SUCCESS[0]), error.SUCCESS[1])
+        return m_return(resp.SUCCESS[0], resp.SUCCESS[1])
 
 
 @route_page.route('/data', methods=['GET'])
@@ -237,4 +237,4 @@ def data_get():
     print user_schema.dump(result).data
 
     # return make_response(jsonify(error.PERMISSION_DENIED['message']), error.PERMISSION_DENIED['code'])
-    return make_response(jsonify('test'), 999)
+    return m_return('test', 999)
