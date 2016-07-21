@@ -1,13 +1,11 @@
 from api.user_model import db
 from api.routes.routes import limiter
 from api.routes.routes import route_page
-from api.utils.const import SQLALCHEMY_DATABASE_URI
 from flask import Flask
+from api.utils.config import DevelopmentConfig, ProductionConfig
 
 app = Flask(__name__)
-app.config['DEBUG'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+app.config.from_object(DevelopmentConfig)
 app.register_blueprint(route_page)
 
 db.init_app(app)
