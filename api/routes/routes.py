@@ -29,7 +29,8 @@ limiter = Limiter(key_func=get_remote_address)
 def setup():
     # Recreate database each time for demo
     User.create(username='sa_username', password='sa_password', email='sa_email@example.com', user_role='super_admin')
-    User.create(username='admin_username', password='admin_password', email='admin_email@example.com', user_role='admin')
+    User.create(username='admin_username', password='admin_password', email='admin_email@example.com',
+                user_role='admin')
     User.create(username='test_username', password='test_password', email='test_email@example.com', user_role='user')
     print "Default users added."
 
@@ -233,9 +234,9 @@ def refresh_token():
     return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={'access_token': token})
 
 
-@route_page.route('/v1.0/auth/password_reset', methods=['POST'])
+@route_page.route('/v1.0/auth/password_change', methods=['POST'])
 @auth.login_required
-def password_reset():
+def password_change():
 
         # Get old and new passwords.
         old_pass, new_pass = request.json.get('old_pass'), request.json.get('new_pass')
