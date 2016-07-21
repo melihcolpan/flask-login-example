@@ -1,6 +1,6 @@
 import unittest
 from api import app
-from api.user_model import db
+from api.utils.database import db
 from api.utils import config
 
 

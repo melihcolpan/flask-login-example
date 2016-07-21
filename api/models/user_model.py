@@ -1,39 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import logging
 from datetime import datetime
 
-from api.auth import jwt, auth
+from api.utils.auth import jwt, auth
 from api.utils.const import SQLALCHEMY_DATABASE_URI
-from flask import g, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from api.utils.database import db
+from flask import g
 from marshmallow_sqlalchemy import ModelSchema
-from sqlalchemy import Enum
-from sqlalchemy import create_engine
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import api.utils.errors as error
-import logging
-
 from passlib.handlers.md5_crypt import md5_crypt
+from sqlalchemy import Enum
+
+from sqlalchemy.exc import IntegrityError
 
 
-engine = create_engine(SQLALCHEMY_DATABASE_URI)
-Base = declarative_base()
-db = SQLAlchemy()
-
-Base.metadata.bind = engine
-Base.metadata.create_all()
-
-Session = sessionmaker(bind=engine)
-session = Session()
 
 
 class User(db.Model):
 
     # Generates default class name for table. For changing use
-    __tablename__ = 'users'
+    __tablename__ = 'trs_users'
 
     # __table_args__ = (db.UniqueConstraint('email'),)
 
@@ -54,6 +41,12 @@ class User(db.Model):
 
     # Unless otherwise stated default role is user.
     user_role = db.Column(db.String, Enum('super_admin', 'admin', 'user', name='user_roles'), default='user')
+
+    def __init__(self, username, password, email, user_role='user'):
+        self.username = username
+        self.password = md5_crypt.encrypt(password)
+        self.email = email
+        self.user_role = user_role
 
     def as_dict(self):
         return {'username': self.username, 'email': self.email, 'created': self.created, 'user_role': self.user_role}
@@ -119,7 +112,7 @@ class User(db.Model):
 
         try:
             # Create admin user if it does not existed.
-            user = User(username=username, password=md5_crypt.encrypt(password), email=email, user_role=user_role)
+            user = User(username=username, password=password, email=email, user_role=user_role)
 
             # Add user to session.
             db.session.add(user)
@@ -172,21 +165,3 @@ class UserSchema(ModelSchema):
     class Meta:
         model = User
 user_schema = UserSchema(many=True)
-
-
-class Blacklist(db.Model):
-
-    # Generates default class name for table. For changing use
-    # __tablename__ = 'users'
-
-    # Blacklist id.
-    id = db.Column(db.Integer, primary_key=True)
-
-    # Blacklist invalidated refresh tokens.
-    refresh_token = db.Column(db.String(length=255))
-
-    def __repr__(self):
-
-        # This is only for representation how you want to see refresh tokens after query.
-        return "<User(id='%s', refresh_token='%s', status='invalidated.')>" % (
-                      self.id, self.refresh_token)

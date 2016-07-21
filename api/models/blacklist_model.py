@@ -1,12 +1,13 @@
-from flask.ext.sqlalchemy import SQLAlchemy
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-db = SQLAlchemy()
+from api.utils.database import db
 
 
 class Blacklist(db.Model):
 
     # Generates default class name for table. For changing use
-    # __tablename__ = 'users'
+    __tablename__ = 'blacklist'
 
     # Blacklist id.
     id = db.Column(db.Integer, primary_key=True)
