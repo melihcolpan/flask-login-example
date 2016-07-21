@@ -10,7 +10,6 @@ from api.utils.config import Config
 engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
 Base = declarative_base()
 
-
 Base.metadata.bind = engine
 Base.metadata.create_all()
 

@@ -6,7 +6,7 @@ import logging
 import api.utils.responses as resp
 from api.models.user_model import User
 from api.models.blacklist_model import Blacklist
-from api.models.user_model import user_schema
+from api.models.user_model import UserSchema
 from api.utils.database import session
 from api.utils.auth import auth, refresh_jwt
 from api.utils.database import db
@@ -17,6 +17,7 @@ from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from passlib.handlers.md5_crypt import md5_crypt
+from api.utils.decorators import permission
 
 
 route_page = Blueprint("route_page", __name__)
@@ -40,7 +41,7 @@ def add_header(response):
     return response
 
 
-@route_page.route('/v1/auth/register', methods=['POST'])
+@route_page.route('/v1.0/auth/register', methods=['POST'])
 def register():
 
     try:
@@ -52,8 +53,9 @@ def register():
         # Logging the error.
         logging.warning(why)
 
-        # Return missed parameter error. Response 0 is message, 1 is http response code.
-        return m_return(resp.MISSED_PARAMETERS[0], resp.MISSED_PARAMETERS[1])
+        # Return missed parameter error.
+        return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
+                        code=resp.MISSED_PARAMETERS['code'])
 
     # Create a new user.
     user = User.create(username=username, password=password, email=email, user_role='user')
@@ -61,14 +63,19 @@ def register():
     # Check if user is already existed.
     if user is None:
 
-        # Return error. Response 0 is message, 1 is http response code.
-        return m_return(resp.ALREADY_EXIST[0], resp.ALREADY_EXIST[1])
+        # Return already exists error.
+        return m_return(http_code=resp.ALREADY_EXIST['http_code'], message=resp.ALREADY_EXIST['message'],
+                        code=resp.ALREADY_EXIST['code'])
 
-    # Return success if registration is completed. Response 0 is message, 1 is http response code.
-    return m_return(resp.SUCCESS[0], resp.SUCCESS[1])
+    # User schema for some fields.
+    user_schema = UserSchema(only=('id', 'username', 'email', 'created', 'user_role'))
+
+    # Return registration completed.
+    return m_return(http_code=resp.REGISTRATION_COMPLETED['http_code'], message=resp.REGISTRATION_COMPLETED['message'],
+                    value=user_schema.dump(user).data)
 
 
-@route_page.route('/v1/auth/login', methods=['POST'])
+@route_page.route('/v1.0/auth/login', methods=['POST'])
 @limiter.limit("5 per minute")
 def login():
 
@@ -81,8 +88,9 @@ def login():
             # Log input strip or etc. errors.
             logging.info("Email or password is wrong. " + str(why))
 
-            # Return invalid input error. Response 0 is message, 1 is http response code.
-            return m_return(resp.INVALID_INPUT_422[0], resp.INVALID_INPUT_422[1])
+            # Return invalid input error. Response 0 is message, 1 is http response http_code.
+            return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
+                            code=resp.MISSED_PARAMETERS['code'])
 
         # Get user if it is existed.
         user = User.query.filter_by(email=email).first()
@@ -91,13 +99,16 @@ def login():
         if user is None:
 
             # Return error message.
-            return m_return(resp.DOES_NOT_EXIST[0], resp.DOES_NOT_EXIST[1])
+            return m_return(http_code=resp.USER_DOES_NOT_EXIST['http_code'],
+                            message=resp.USER_DOES_NOT_EXIST['message'],
+                            code=resp.USER_DOES_NOT_EXIST['code'])
 
         # User password verify.
         if not user.verify_password_hash(password):
 
             # Return error message.
-            return m_return(resp.CREDENTIALS_ERROR_999[0], resp.CREDENTIALS_ERROR_999[1])
+            return m_return(http_code=resp.CREDENTIALS_ERROR_999['http_code'],
+                            message=resp.CREDENTIALS_ERROR_999['message'], code=resp.CREDENTIALS_ERROR_999['code'])
 
         # Check if user does not have admin or super admin permissions.
         if user.user_role == 'user':
@@ -120,16 +131,19 @@ def login():
         else:
 
             # Return permission denied error.
-            return m_return(resp.PERMISSION_DENIED[0], resp.PERMISSION_DENIED[1])
+            return m_return(http_code=resp.PERMISSION_DENIED['http_code'], message=resp.PERMISSION_DENIED['message'],
+                            code=resp.PERMISSION_DENIED['code'])
 
         # Generate refresh token.
         m_refresh_token = refresh_jwt.dumps({'email': email})
 
         # Return access token and refresh token.
-        return m_return({'access_token': access_token, 'refresh_token': m_refresh_token}, resp.SUCCESS[1])
+        return m_return(http_code=resp.SUCCESS['http_code'],
+                        message=resp.SUCCESS['message'],
+                        value={'access_token': access_token, 'refresh_token': m_refresh_token})
 
 
-@route_page.route('/v1/auth/logout', methods=['POST'])
+@route_page.route('/v1.0/auth/logout', methods=['POST'])
 @auth.login_required
 def logout():
 
@@ -143,14 +157,18 @@ def logout():
         logging.warning(why)
 
         # Return invalid input error.
-        return m_return(resp.INVALID_INPUT_422[0], resp.INVALID_INPUT_422[1])
+        return m_return(http_code=resp.INVALID_INPUT_422['http_code'], message=resp.INVALID_INPUT_422['message'],
+                        code=resp.INVALID_INPUT_422['code'])
 
     # Get if the refresh token is in blacklist
     ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
 
     # Check refresh token is existed.
     if ref is not None:
-        return m_return({'status': 'already invalidated', 'refresh_token': m_refresh_token}, 200)
+
+        # Return this refresh token is already invalidated.
+        return m_return(http_code=resp.ALREADY_INVALIDATED['http_code'], message=resp.ALREADY_INVALIDATED['message'],
+                        code=resp.ALREADY_INVALIDATED['code'])
 
     # Create a blacklist refresh token.
     blacklist_refresh_token = Blacklist(refresh_token=m_refresh_token)
@@ -162,10 +180,10 @@ def logout():
     db.session.commit()
 
     # Return status of refresh token.
-    return m_return({'status': 'invalidated', 'refresh_token': m_refresh_token}, 200)
+    return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={})
 
 
-@route_page.route('/v1/auth/refresh', methods=['POST'])
+@route_page.route('/v1.0/auth/refresh', methods=['POST'])
 def refresh_token():
 
     try:
@@ -177,7 +195,9 @@ def refresh_token():
         # Logging the error.
         logging.warning(why)
 
-        return m_return(resp.INVALID_INPUT_422[0], resp.INVALID_INPUT_422[1])
+        # Return missed parameters.
+        return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
+                        code=resp.MISSED_PARAMETERS['code'])
 
     # Get if the refresh token is in blacklist.
     ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
@@ -185,8 +205,9 @@ def refresh_token():
     # Check refresh token is existed.
     if ref is not None:
 
-        # Return invalidated token.
-        return m_return(resp.ALREADY_INVALIDATED[0], resp.ALREADY_INVALIDATED[1])
+        # Return this refresh token is already invalidated.
+        return m_return(http_code=resp.ALREADY_INVALIDATED['http_code'], message=resp.ALREADY_INVALIDATED['message'],
+                        code=resp.ALREADY_INVALIDATED['code'])
 
     try:
         # Generate new token.
@@ -198,7 +219,9 @@ def refresh_token():
         logging.error(why)
 
         # If it does not generated return false.
-        return m_return(resp.CREDENTIALS_ERROR_999[0], resp.CREDENTIALS_ERROR_999[1])
+        # Return this refresh token is already invalidated.
+        return m_return(http_code=resp.CREDENTIALS_ERROR_999['http_code'],
+                        message=resp.CREDENTIALS_ERROR_999['message'], code=resp.CREDENTIALS_ERROR_999['code'])
 
     # Create user not to add db. For generating token.
     user = User(email=data['email'])
@@ -207,10 +230,10 @@ def refresh_token():
     token = user.generate_auth_token(0)
 
     # Return new access token.
-    return m_return({'access_token': token}, 200)
+    return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={'access_token': token})
 
 
-@route_page.route('/v1/auth/password_reset', methods=['POST'])
+@route_page.route('/v1.0/auth/password_reset', methods=['POST'])
 @auth.login_required
 def password_reset():
 
@@ -224,7 +247,8 @@ def password_reset():
         if not user.verify_password_hash(old_pass):
 
             # Return does not match status.
-            return m_return(resp.OLD_PASS_DOES_NOT_MATCH[0], resp.OLD_PASS_DOES_NOT_MATCH[1])
+            return m_return(http_code=resp.OLD_PASS_DOES_NOT_MATCH['http_code'],
+                            message=resp.OLD_PASS_DOES_NOT_MATCH['message'], code=resp.OLD_PASS_DOES_NOT_MATCH['code'])
 
         # Update password.
         user.password = md5_crypt.encrypt(new_pass)
@@ -233,18 +257,24 @@ def password_reset():
         db.session.commit()
 
         # Return success status.
-        return m_return(resp.SUCCESS[0], resp.SUCCESS[1])
+        return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={})
 
 
 @route_page.route('/data', methods=['GET'])
 @auth.login_required
+@permission(1)
 @limiter.limit("100 per day")
 def data_get():
 
+    # ONLY ADMIN AND SUPER ADMIN!
+    # User schema for some fields.
+    user_schema = UserSchema(only=('id', 'username', 'email', 'created', 'user_role'))
+
+    # Get all users from database.
     result = session.query(User).all()
-    print result
 
-    print user_schema.dump(result).data
+    # Dumps database objects to json.
+    users = user_schema.dump(result).data
 
-    # return make_response(jsonify(error.PERMISSION_DENIED['message']), error.PERMISSION_DENIED['code'])
-    return m_return('test', 999)
+    # Return users.
+    return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value=users)

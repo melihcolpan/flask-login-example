@@ -15,8 +15,6 @@ from sqlalchemy import Enum
 from sqlalchemy.exc import IntegrityError
 
 
-
-
 class User(db.Model):
 
     # Generates default class name for table. For changing use
@@ -42,7 +40,7 @@ class User(db.Model):
     # Unless otherwise stated default role is user.
     user_role = db.Column(db.String, Enum('super_admin', 'admin', 'user', name='user_roles'), default='user')
 
-    def __init__(self, username, password, email, user_role='user'):
+    def __init__(self, username=None, password=None, email=None, user_role='user'):
         self.username = username
         self.password = md5_crypt.encrypt(password)
         self.email = email
@@ -164,4 +162,3 @@ class User(db.Model):
 class UserSchema(ModelSchema):
     class Meta:
         model = User
-user_schema = UserSchema(many=True)
