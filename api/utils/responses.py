@@ -23,4 +23,5 @@ OLD_PASS_DOES_NOT_MATCH = {"message": "Old password does not match.", "code": 99
 
 
 def m_return(message, code):
-    return make_response(jsonify({'message': str(message)}), code)
+    resp = make_response(jsonify({'message': str(message)}), code)
+    return resp

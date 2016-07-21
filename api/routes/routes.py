@@ -32,6 +32,13 @@ def setup():
     print "Default users added."
 
 
+@route_page.after_request
+def add_header(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['ABC-Header-Melih'] = ':)'
+    return response
+
+
 @route_page.route('/v1/auth/register', methods=['POST'])
 def register():
 
