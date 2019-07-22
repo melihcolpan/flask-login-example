@@ -1,7 +1,7 @@
 apispec==2.0.2
 click==7.0
 Flask==1.1.1
-Flask-HTTPAuth==3.1.2
+Flask-HTTPAuth==3.3.0
 Flask-Limiter==0.9.3
 Flask-SQLAlchemy==2.1
 Flask-Testing==0.5.0
