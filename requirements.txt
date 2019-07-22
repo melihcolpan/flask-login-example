@@ -12,7 +12,7 @@ MarkupSafe==1.1.1
 marshmallow==2.19.5
 marshmallow-sqlalchemy==0.17.0
 nose2==0.9.1
-passlib==1.6.5
+passlib==1.7.1
 PyYAML==3.11
 six==1.10.0
 SQLAlchemy==1.0.14
