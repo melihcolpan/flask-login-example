@@ -4,7 +4,7 @@ Flask==1.1.1
 Flask-HTTPAuth==3.3.0
 Flask-Limiter==1.0.1
 Flask-SQLAlchemy==2.4.0
-Flask-Testing==0.5.0
+Flask-Testing==0.7.1
 itsdangerous==0.24
 Jinja2==2.8
 limits==1.1.1
