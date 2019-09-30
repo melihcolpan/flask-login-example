@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from api import app
+from utils.factory import app
 
 if __name__ == '__main__':
 

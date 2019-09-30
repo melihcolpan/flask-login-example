@@ -2,14 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import logging
-
 import api.utils.responses as resp
-from api.models.user_model import User
-from api.models.blacklist_model import Blacklist
-from api.models.user_model import UserSchema
-from api.utils.database import session
+from api.database.models.user_model import User
+from api.database.models.blacklist_model import Blacklist
+from api.database.config import session
 from api.utils.auth import auth, refresh_jwt
-from api.utils.database import db
+from api.database.config import db
 from api.utils.responses import m_return
 from flask import Blueprint
 from flask import g
@@ -18,6 +16,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from passlib.handlers.md5_crypt import md5_crypt
 from api.utils.decorators import permission
+import json
 
 
 route_page = Blueprint("route_page", __name__)
@@ -38,7 +37,6 @@ def setup():
 @route_page.after_request
 def add_header(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['ABC-Header-Melih'] = ':)'
     return response
 
 
@@ -68,12 +66,9 @@ def register():
         return m_return(http_code=resp.ALREADY_EXIST['http_code'], message=resp.ALREADY_EXIST['message'],
                         code=resp.ALREADY_EXIST['code'])
 
-    # User schema for some fields.
-    user_schema = UserSchema(only=('id', 'username', 'email', 'created', 'user_role'))
-
     # Return registration completed.
     return m_return(http_code=resp.REGISTRATION_COMPLETED['http_code'], message=resp.REGISTRATION_COMPLETED['message'],
-                    value=user_schema.dump(user).data)
+                    value=json.dumps(user.as_dict()))
 
 
 @route_page.route('/v1.0/auth/login', methods=['POST'])
@@ -136,12 +131,12 @@ def login():
                             code=resp.PERMISSION_DENIED['code'])
 
         # Generate refresh token.
-        m_refresh_token = refresh_jwt.dumps({'email': email})
+        ref_token = refresh_jwt.dumps({'email': email})
 
         # Return access token and refresh token.
         return m_return(http_code=resp.SUCCESS['http_code'],
                         message=resp.SUCCESS['message'],
-                        value={'access_token': access_token, 'refresh_token': m_refresh_token})
+                        value={'access_token': access_token, 'refresh_token': ref_token})
 
 
 @route_page.route('/v1.0/auth/logout', methods=['POST'])
@@ -150,7 +145,7 @@ def logout():
 
     try:
         # Get refresh token.
-        m_refresh_token = request.json.get('refresh_token')
+        ref_token = request.json.get('refresh_token')
 
     except Exception as why:
 
@@ -162,7 +157,7 @@ def logout():
                         code=resp.INVALID_INPUT_422['code'])
 
     # Get if the refresh token is in blacklist
-    ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
+    ref = Blacklist.query.filter_by(refresh_token=ref_token).first()
 
     # Check refresh token is existed.
     if ref is not None:
@@ -172,7 +167,7 @@ def logout():
                         code=resp.ALREADY_INVALIDATED['code'])
 
     # Create a blacklist refresh token.
-    blacklist_refresh_token = Blacklist(refresh_token=m_refresh_token)
+    blacklist_refresh_token = Blacklist(refresh_token=ref_token)
 
     # Add refresh token to session.
     db.session.add(blacklist_refresh_token)
@@ -189,7 +184,7 @@ def refresh_token():
 
     try:
         # Get refresh token.
-        m_refresh_token = request.json.get('refresh_token')
+        ref_token = request.json.get('refresh_token')
 
     except Exception as why:
 
@@ -201,7 +196,7 @@ def refresh_token():
                         code=resp.MISSED_PARAMETERS['code'])
 
     # Get if the refresh token is in blacklist.
-    ref = Blacklist.query.filter_by(refresh_token=m_refresh_token).first()
+    ref = Blacklist.query.filter_by(refresh_token=ref_token).first()
 
     # Check refresh token is existed.
     if ref is not None:
@@ -212,7 +207,7 @@ def refresh_token():
 
     try:
         # Generate new token.
-        data = refresh_jwt.loads(m_refresh_token)
+        data = refresh_jwt.loads(ref_token)
 
     except Exception as why:
 
@@ -261,21 +256,17 @@ def password_change():
         return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={})
 
 
-@route_page.route('/data', methods=['GET'])
+@route_page.route('/v1.0/data', methods=['GET'])
 @auth.login_required
 @permission(1)
 @limiter.limit("100 per day")
 def data_get():
 
-    # ONLY ADMIN AND SUPER ADMIN!
-    # User schema for some fields.
-    user_schema = UserSchema(only=('id', 'username', 'email', 'created', 'user_role'))
-
     # Get all users from database.
     result = session.query(User).all()
 
     # Dumps database objects to json.
-    users = user_schema.dump(result).data
+    users = [user.as_dict() for user in result]
 
     # Return users.
     return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value=users)
