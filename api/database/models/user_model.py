@@ -4,11 +4,11 @@
 import logging
 from datetime import datetime
 
+
 from api.utils.auth import jwt, auth
-from api.utils.const import SQLALCHEMY_DATABASE_URI
-from api.utils.database import db
+from api.database.config import db
 from flask import g
-from marshmallow_sqlalchemy import ModelSchema
+
 from passlib.handlers.md5_crypt import md5_crypt
 from sqlalchemy import Enum
 
@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 class User(db.Model):
 
     # Generates default class name for table. For changing use
-    __tablename__ = 'trs_users'
+    __tablename__ = 'users'
 
     # __table_args__ = (db.UniqueConstraint('email'),)
 
@@ -47,7 +47,8 @@ class User(db.Model):
         self.user_role = user_role
 
     def as_dict(self):
-        return {'username': self.username, 'email': self.email, 'created': self.created, 'user_role': self.user_role}
+        return {'id': self.id, 'username': self.username, 'email': self.email,
+                'created': self.created.__format__('%Y-%m-%d'), 'user_role': self.user_role}
 
     # Generates auth token.
     def generate_auth_token(self, permission_level):
@@ -85,8 +86,9 @@ class User(db.Model):
             # Load token.
             data = jwt.loads(token)
 
-        except:
+        except Exception as e:
             # If any error return false.
+            logging.warning('Not verified. {}'.format(e))
             return False
 
         # Check if email and admin permission variables are in jwt.
@@ -137,15 +139,14 @@ class User(db.Model):
             # Return error.
             return None
 
-
     @staticmethod
     def generate_password_hash(password):
 
         # Generate password hash.
-        hash = md5_crypt.encrypt(password)
+        h = md5_crypt.encrypt(password)
 
         # Return hash.
-        return hash
+        return h
 
     def verify_password_hash(self, password):
 
@@ -157,8 +158,3 @@ class User(db.Model):
         # This is only for representation how you want to see user information after query.
         return "<User(id='%s', name='%s', password='%s', email='%s', created='%s')>" % (
                       self.id, self.username, self.password, self.email, self.created)
-
-
-class UserSchema(ModelSchema):
-    class Meta:
-        model = User

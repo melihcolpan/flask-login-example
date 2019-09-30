@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from api.utils.database import db
+from api.database.config import db
 
 
 class Blacklist(db.Model):
