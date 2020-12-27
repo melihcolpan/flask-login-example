@@ -3,7 +3,7 @@
 
 import logging
 import api.utils.responses as resp
-from api.database.models.user_model import User
+from api.database.models.model_user import User
 from api.database.models.blacklist_model import Blacklist
 from api.database.config import session
 from api.utils.auth import auth, refresh_jwt
@@ -31,7 +31,7 @@ def setup():
     User.create(username='admin_username', password='admin_password', email='admin_email@example.com',
                 user_role='admin')
     User.create(username='test_username', password='test_password', email='test_email@example.com', user_role='user')
-    print "Default users added."
+    print("Default users added.")
 
 
 @route_page.after_request
@@ -75,68 +75,68 @@ def register():
 @limiter.limit("5 per minute")
 def login():
 
-        try:
-            # Get user email and password. Was not checked cause none type has no attribute strip.
-            email, password = request.json.get('email').strip(), request.json.get('password').strip()
+    try:
+        # Get user email and password. Was not checked cause none type has no attribute strip.
+        email, password = request.json.get('email').strip(), request.json.get('password').strip()
 
-        except Exception as why:
+    except Exception as why:
 
-            # Log input strip or etc. errors.
-            logging.info("Email or password is wrong. " + str(why))
+        # Log input strip or etc. errors.
+        logging.info("Email or password is wrong. " + str(why))
 
-            # Return invalid input error. Response 0 is message, 1 is http response http_code.
-            return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
-                            code=resp.MISSED_PARAMETERS['code'])
+        # Return invalid input error. Response 0 is message, 1 is http response http_code.
+        return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
+                        code=resp.MISSED_PARAMETERS['code'])
 
-        # Get user if it is existed.
-        user = User.query.filter_by(email=email).first()
+    # Get user if it is existed.
+    user = User.query.filter_by(email=email).first()
 
-        # Check if user is not existed.
-        if user is None:
+    # Check if user is not existed.
+    if user is None:
 
-            # Return error message.
-            return m_return(http_code=resp.USER_DOES_NOT_EXIST['http_code'],
-                            message=resp.USER_DOES_NOT_EXIST['message'],
-                            code=resp.USER_DOES_NOT_EXIST['code'])
+        # Return error message.
+        return m_return(http_code=resp.USER_DOES_NOT_EXIST['http_code'],
+                        message=resp.USER_DOES_NOT_EXIST['message'],
+                        code=resp.USER_DOES_NOT_EXIST['code'])
 
-        # User password verify.
-        if not user.verify_password_hash(password):
+    # User password verify.
+    if not user.verify_password_hash(password):
 
-            # Return error message.
-            return m_return(http_code=resp.CREDENTIALS_ERROR_999['http_code'],
-                            message=resp.CREDENTIALS_ERROR_999['message'], code=resp.CREDENTIALS_ERROR_999['code'])
+        # Return error message.
+        return m_return(http_code=resp.CREDENTIALS_ERROR_999['http_code'],
+                        message=resp.CREDENTIALS_ERROR_999['message'], code=resp.CREDENTIALS_ERROR_999['code'])
 
-        # Check if user does not have admin or super admin permissions.
-        if user.user_role == 'user':
+    # Check if user does not have admin or super admin permissions.
+    if user.user_role == 'user':
 
-            # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 1 or 0.
-            access_token = user.generate_auth_token(0)
+        # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 1 or 0.
+        access_token = user.generate_auth_token(0)
 
-        # If user is admin.
-        elif user.user_role == 'admin':
+    # If user is admin.
+    elif user.user_role == 'admin':
 
-            # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 1 or 0.
-            access_token = user.generate_auth_token(1)
+        # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 1 or 0.
+        access_token = user.generate_auth_token(1)
 
-        # If user is super admin.
-        elif user.user_role == 'super_admin':
+    # If user is super admin.
+    elif user.user_role == 'super_admin':
 
-            # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 2, 1, 0.
-            access_token = user.generate_auth_token(2)
+        # Generate access token. This method takes boolean value for checking admin or normal user. Admin: 2, 1, 0.
+        access_token = user.generate_auth_token(2)
 
-        else:
+    else:
 
-            # Return permission denied error.
-            return m_return(http_code=resp.PERMISSION_DENIED['http_code'], message=resp.PERMISSION_DENIED['message'],
-                            code=resp.PERMISSION_DENIED['code'])
+        # Return permission denied error.
+        return m_return(http_code=resp.PERMISSION_DENIED['http_code'], message=resp.PERMISSION_DENIED['message'],
+                        code=resp.PERMISSION_DENIED['code'])
 
-        # Generate refresh token.
-        ref_token = refresh_jwt.dumps({'email': email})
+    # Generate refresh token.
+    ref_token = refresh_jwt.dumps({'email': email})
 
-        # Return access token and refresh token.
-        return m_return(http_code=resp.SUCCESS['http_code'],
-                        message=resp.SUCCESS['message'],
-                        value={'access_token': access_token, 'refresh_token': ref_token})
+    # Return access token and refresh token.
+    return m_return(http_code=resp.SUCCESS['http_code'],
+                    message=resp.SUCCESS['message'],
+                    value={'access_token': access_token, 'refresh_token': ref_token})
 
 
 @route_page.route('/v1.0/auth/logout', methods=['POST'])
@@ -233,27 +233,27 @@ def refresh_token():
 @auth.login_required
 def password_change():
 
-        # Get old and new passwords.
-        old_pass, new_pass = request.json.get('old_pass'), request.json.get('new_pass')
+    # Get old and new passwords.
+    old_pass, new_pass = request.json.get('old_pass'), request.json.get('new_pass')
 
-        # Get user. g.user generates email address cause we put email address to g.user in models.py.
-        user = User.query.filter_by(email=g.user).first()
+    # Get user. g.user generates email address cause we put email address to g.user in models.py.
+    user = User.query.filter_by(email=g.user).first()
 
-        # Check if user password does not match with old password.
-        if not user.verify_password_hash(old_pass):
+    # Check if user password does not match with old password.
+    if not user.verify_password_hash(old_pass):
 
-            # Return does not match status.
-            return m_return(http_code=resp.OLD_PASS_DOES_NOT_MATCH['http_code'],
-                            message=resp.OLD_PASS_DOES_NOT_MATCH['message'], code=resp.OLD_PASS_DOES_NOT_MATCH['code'])
+        # Return does not match status.
+        return m_return(http_code=resp.OLD_PASS_DOES_NOT_MATCH['http_code'],
+                        message=resp.OLD_PASS_DOES_NOT_MATCH['message'], code=resp.OLD_PASS_DOES_NOT_MATCH['code'])
 
-        # Update password.
-        user.password = md5_crypt.encrypt(new_pass)
+    # Update password.
+    user.password = md5_crypt.encrypt(new_pass)
 
-        # Commit session.
-        db.session.commit()
+    # Commit session.
+    db.session.commit()
 
-        # Return success status.
-        return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={})
+    # Return success status.
+    return m_return(http_code=resp.SUCCESS['http_code'], message=resp.SUCCESS['message'], value={})
 
 
 @route_page.route('/v1.0/data', methods=['GET'])

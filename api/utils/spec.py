@@ -1,5 +1,8 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from apispec import APISpec
-from api import app
+from api.utils.factory import app
 from api.routes import routes
 import json
 
@@ -25,4 +28,4 @@ def create_api_spec():
 
 
 if __name__ == '__main__':
-    print json.dumps(create_api_spec())
+    print(json.dumps(create_api_spec()))

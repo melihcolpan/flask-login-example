@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import unittest
 from api.utils.factory import app
 from api.database.config import db

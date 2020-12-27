@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from api.utils.test_base import BaseTestCase
 from api.utils.spec import create_api_spec
 
