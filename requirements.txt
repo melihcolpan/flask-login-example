@@ -1,6 +1,6 @@
 apispec==3.3.0
 click==7.0
-Flask==1.1.1
+Flask==3.0.1
 Flask-HTTPAuth==3.3.0
 Flask-Limiter==1.1.0
 Flask-SQLAlchemy==2.5.1
