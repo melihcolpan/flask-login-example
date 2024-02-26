@@ -1,4 +1,4 @@
-apispec==3.3.0
+apispec==6.5.0
 click==7.0
 Flask==1.1.1
 Flask-HTTPAuth==3.3.0
