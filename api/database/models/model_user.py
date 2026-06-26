@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from api.utils.auth import jwt, auth
@@ -35,14 +35,16 @@ class User(db.Model):
     email = db.Column(db.String(length=80), unique=True, nullable=False)
 
     # Creation time for user.
-    created = db.Column(db.DateTime, default=datetime.utcnow)
+    created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Unless otherwise stated default role is user.
-    user_role = db.Column(db.String, Enum('super_admin', 'admin', 'user', name='user_roles'), default='user')
+    # Unless otherwise stated default role is user. Passing the type as the
+    # second positional Column arg is invalid in SQLAlchemy 2.0, so use the
+    # Enum as the column type directly.
+    user_role = db.Column(Enum('super_admin', 'admin', 'user', name='user_roles'), default='user')
 
     def __init__(self, username=None, password=None, email=None, user_role='user'):
         self.username = username
-        self.password = md5_crypt.encrypt(password)
+        self.password = md5_crypt.hash(password)
         self.email = email
         self.user_role = user_role
 
@@ -143,7 +145,7 @@ class User(db.Model):
     def generate_password_hash(password):
 
         # Generate password hash.
-        h = md5_crypt.encrypt(password)
+        h = md5_crypt.hash(password)
 
         # Return hash.
         return h

@@ -20,7 +20,7 @@ SUCCESS = {"http_code": 200, "code": "test_stat", "message": "SUCCESS."}
 INVALIDATED = {"http_code": 200, "code": "test_stat", "message": "INVALIDATED."}
 ALREADY_INVALIDATED = {"http_code": 200, "code": "test_stat", "message": "INVALIDATED."}
 OLD_PASS_DOES_NOT_MATCH = {"http_code": 999, "code": "test_stat", "message": "Old password does not match."}
-REGISTRATION_COMPLETED = {"http_code": 999, "code": "test_stat", "message": "Old password does not match."}
+REGISTRATION_COMPLETED = {"http_code": 200, "code": "test_stat", "message": "Registration completed."}
 
 
 def m_return(http_code=0, code=None, message=None, value=None):

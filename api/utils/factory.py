@@ -11,7 +11,9 @@ app.config.from_object(DevelopmentConfig)
 app.register_blueprint(route_page)
 
 db.init_app(app)
-db.app = app
-db.create_all()
+
+# Flask-SQLAlchemy 3.x removed db.app; create tables within an app context.
+with app.app_context():
+    db.create_all()
 
 limiter.init_app(app)

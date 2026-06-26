@@ -24,9 +24,19 @@ route_page = Blueprint("route_page", __name__)
 limiter = Limiter(key_func=get_remote_address)
 
 
-@route_page.before_app_first_request
+# Flask 2.3 removed before_app_first_request; run the demo seeding once,
+# guarded by a flag, on the first incoming request instead.
+_seeded = False
+
+
+@route_page.before_app_request
 def setup():
-    # Recreate database each time for demo
+    global _seeded
+    if _seeded:
+        return
+    _seeded = True
+    # Seed default demo users. User.create is idempotent: it returns None
+    # on the email unique-constraint conflict.
     User.create(username='sa_username', password='sa_password', email='sa_email@example.com', user_role='super_admin')
     User.create(username='admin_username', password='admin_password', email='admin_email@example.com',
                 user_role='admin')
@@ -247,7 +257,7 @@ def password_change():
                         message=resp.OLD_PASS_DOES_NOT_MATCH['message'], code=resp.OLD_PASS_DOES_NOT_MATCH['code'])
 
     # Update password.
-    user.password = md5_crypt.encrypt(new_pass)
+    user.password = md5_crypt.hash(new_pass)
 
     # Commit session.
     db.session.commit()
