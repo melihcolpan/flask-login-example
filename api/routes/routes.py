@@ -14,8 +14,9 @@ from flask import g
 from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from passlib.handlers.md5_crypt import md5_crypt
+from passlib.hash import pbkdf2_sha256
 from api.utils.decorators import permission
+import os
 import json
 
 
@@ -35,6 +36,11 @@ def setup():
     if _seeded:
         return
     _seeded = True
+    # Default demo accounts are NOT created unless explicitly opted in, so a
+    # real deployment never ships with known hardcoded credentials. Enable
+    # them for local demos with SEED_DEMO_USERS=true.
+    if os.environ.get("SEED_DEMO_USERS", "false").lower() not in ("true", "1", "yes"):
+        return
     # Seed default demo users. User.create is idempotent: it returns None
     # on the email unique-constraint conflict.
     User.create(username='sa_username', password='sa_password', email='sa_email@example.com', user_role='super_admin')
@@ -257,7 +263,7 @@ def password_change():
                         message=resp.OLD_PASS_DOES_NOT_MATCH['message'], code=resp.OLD_PASS_DOES_NOT_MATCH['code'])
 
     # Update password.
-    user.password = md5_crypt.hash(new_pass)
+    user.password = pbkdf2_sha256.hash(new_pass)
 
     # Commit session.
     db.session.commit()

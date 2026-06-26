@@ -9,7 +9,7 @@ from api.utils.auth import jwt, auth
 from api.database.config import db
 from flask import g
 
-from passlib.handlers.md5_crypt import md5_crypt
+from passlib.hash import pbkdf2_sha256
 from sqlalchemy import Enum
 
 from sqlalchemy.exc import IntegrityError
@@ -28,8 +28,8 @@ class User(db.Model):
     # User name.
     username = db.Column(db.String(length=80), nullable=False)
 
-    # User password.
-    password = db.Column(db.String(length=80), nullable=False)
+    # User password hash (pbkdf2-sha256 hashes are long; allow room for them).
+    password = db.Column(db.String(length=255), nullable=False)
 
     # User email address.
     email = db.Column(db.String(length=80), unique=True, nullable=False)
@@ -44,7 +44,7 @@ class User(db.Model):
 
     def __init__(self, username=None, password=None, email=None, user_role='user'):
         self.username = username
-        self.password = md5_crypt.hash(password)
+        self.password = pbkdf2_sha256.hash(password)
         self.email = email
         self.user_role = user_role
 
@@ -145,7 +145,7 @@ class User(db.Model):
     def generate_password_hash(password):
 
         # Generate password hash.
-        h = md5_crypt.hash(password)
+        h = pbkdf2_sha256.hash(password)
 
         # Return hash.
         return h
@@ -153,10 +153,11 @@ class User(db.Model):
     def verify_password_hash(self, password):
 
         # Return result of verifying password, true or false.
-        return md5_crypt.verify(password, self.password)
+        return pbkdf2_sha256.verify(password, self.password)
 
     def __repr__(self):
 
-        # This is only for representation how you want to see user information after query.
-        return "<User(id='%s', name='%s', password='%s', email='%s', created='%s')>" % (
-                      self.id, self.username, self.password, self.email, self.created)
+        # This is only for representation how you want to see user information
+        # after query. The password hash is deliberately left out.
+        return "<User(id='%s', username='%s', email='%s', created='%s')>" % (
+                      self.id, self.username, self.email, self.created)

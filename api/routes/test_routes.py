@@ -15,10 +15,13 @@ class DBTest(BaseTestCase):
             db.session.commit()
             assert user in db.session
 
-    def test_md5_encrypt(self):
+    def test_password_hash(self):
         user = User(username='sa_username', password='sa_password',
                     email='sa_email@example.com', user_role='super_admin')
+        # The stored value must be a hash, not the plaintext password.
+        self.assertNotEqual(user.password, "sa_password")
         self.assertTrue(user.verify_password_hash("sa_password"))
+        self.assertFalse(user.verify_password_hash("wrong_password"))
 
 
 class LoginTest(BaseTestCase):
