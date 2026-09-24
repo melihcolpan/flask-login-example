@@ -13,5 +13,5 @@ nose2==0.16.0
 passlib==1.7.4
 PyYAML==6.0.3
 six==1.17.0
-SQLAlchemy==2.0.51
+SQLAlchemy==2.1.0
 Werkzeug==3.1.8
