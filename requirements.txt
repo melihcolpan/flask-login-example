@@ -14,4 +14,4 @@ passlib==1.7.4
 PyYAML==6.0.3
 six==1.17.0
 SQLAlchemy==2.0.51
-Werkzeug==3.1.8
+Werkzeug==3.1.9
