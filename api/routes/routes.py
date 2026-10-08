@@ -5,7 +5,6 @@ import logging
 import api.utils.responses as resp
 from api.database.models.model_user import User
 from api.database.models.blacklist_model import Blacklist
-from api.database.config import session
 from api.utils.auth import auth, refresh_jwt
 from api.database.config import db
 from api.utils.responses import m_return
@@ -279,7 +278,7 @@ def password_change():
 def data_get():
 
     # Get all users from database.
-    result = session.query(User).all()
+    result = db.session.query(User).all()
 
     # Dumps database objects to json.
     users = [user.as_dict() for user in result]

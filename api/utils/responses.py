@@ -10,7 +10,8 @@ INVALID_INPUT_422 = {"http_code": 422, "code": "test_stat", "message": "Invalid 
 ALREADY_EXIST = {"http_code": 409, "code": "test_stat", "message": "Already exists."}
 
 USER_DOES_NOT_EXIST = {"http_code": 409, "code": "test_stat", "message": "Does not exists."}
-NOT_ADMIN = {"http_code": 999, "code": "test_stat", "message": "Admin permission denied."}
+NOT_ADMIN = {"http_code": 403, "code": "test_stat", "message": "Admin permission denied."}
+UNAUTHORIZED_401 = {"http_code": 401, "code": "test_stat", "message": "Missing or invalid access token."}
 HEADER_NOT_FOUND = {"http_code": 999, "code": "test_stat", "message": "Header does not exists."}
 PERMISSION_DENIED = {"http_code": 999, "code": "test_stat", "message": "User permissions denied."}
 CREDENTIALS_ERROR_999 = {"http_code": 999, "code": "test_stat", "message": "Credentials error."}
