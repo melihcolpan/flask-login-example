@@ -19,6 +19,17 @@ import os
 import json
 
 
+# Password policy for registration and password change.
+MIN_PASSWORD_LENGTH = 8
+MAX_PASSWORD_BYTES = 4096  # passlib's limit
+
+
+def is_valid_new_password(password):
+    # Passwords are used exactly as typed (never stripped).
+    return isinstance(password, str) and len(password) >= MIN_PASSWORD_LENGTH \
+        and password.strip() != '' and len(password.encode('utf-8')) <= MAX_PASSWORD_BYTES
+
+
 route_page = Blueprint("route_page", __name__)
 
 limiter = Limiter(key_func=get_remote_address)
@@ -60,7 +71,8 @@ def register():
 
     try:
         # Get username, password and email.
-        username, password, email = request.json.get('username').strip(), request.json.get('password').strip(), \
+        # Get username, password and email. The password is kept exactly as typed.
+        username, password, email = request.json.get('username').strip(), request.json.get('password'), \
                                     request.json.get('email').strip()
     except Exception as why:
 
@@ -70,6 +82,16 @@ def register():
         # Return missed parameter error.
         return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
                         code=resp.MISSED_PARAMETERS['code'])
+
+    # Reject empty fields (strip() turns whitespace-only input into "").
+    if not username or not email:
+        return m_return(http_code=resp.MISSED_PARAMETERS['http_code'], message=resp.MISSED_PARAMETERS['message'],
+                        code=resp.MISSED_PARAMETERS['code'])
+
+    # Reject passwords that do not meet the password policy.
+    if not is_valid_new_password(password):
+        return m_return(http_code=resp.INVALID_PASSWORD['http_code'], message=resp.INVALID_PASSWORD['message'],
+                        code=resp.INVALID_PASSWORD['code'])
 
     # Create a new user.
     user = User.create(username=username, password=password, email=email, user_role='user')
@@ -92,7 +114,7 @@ def login():
 
     try:
         # Get user email and password. Was not checked cause none type has no attribute strip.
-        email, password = request.json.get('email').strip(), request.json.get('password').strip()
+        email, password = request.json.get('email').strip(), request.json.get('password')
 
     except Exception as why:
 
@@ -106,16 +128,9 @@ def login():
     # Get user if it is existed.
     user = User.query.filter_by(email=email).first()
 
-    # Check if user is not existed.
-    if user is None:
-
-        # Return error message.
-        return m_return(http_code=resp.USER_DOES_NOT_EXIST['http_code'],
-                        message=resp.USER_DOES_NOT_EXIST['message'],
-                        code=resp.USER_DOES_NOT_EXIST['code'])
-
-    # User password verify.
-    if not user.verify_password_hash(password):
+    # An unknown email and a wrong password get the same answer, so the
+    # response does not reveal which emails are registered.
+    if user is None or not user.verify_password_or_legacy(password):
 
         # Return error message.
         return m_return(http_code=resp.CREDENTIALS_ERROR_999['http_code'],
@@ -254,8 +269,13 @@ def password_change():
     # Get user. g.user generates email address cause we put email address to g.user in models.py.
     user = User.query.filter_by(email=g.user).first()
 
+    # Reject a new password that does not meet the password policy.
+    if not is_valid_new_password(new_pass):
+        return m_return(http_code=resp.INVALID_PASSWORD['http_code'], message=resp.INVALID_PASSWORD['message'],
+                        code=resp.INVALID_PASSWORD['code'])
+
     # Check if user password does not match with old password.
-    if not user.verify_password_hash(old_pass):
+    if not user.verify_password_or_legacy(old_pass):
 
         # Return does not match status.
         return m_return(http_code=resp.OLD_PASS_DOES_NOT_MATCH['http_code'],

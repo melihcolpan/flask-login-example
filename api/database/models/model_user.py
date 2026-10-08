@@ -152,8 +152,21 @@ class User(db.Model):
 
     def verify_password_hash(self, password):
 
+        # passlib rejects passwords over 4096 bytes; such a password can never match.
+        if not isinstance(password, str) or len(password.encode('utf-8')) > 4096:
+            return False
+
         # Return result of verifying password, true or false.
         return pbkdf2_sha256.verify(password, self.password)
+
+    def verify_password_or_legacy(self, password):
+
+        # Passwords used to be stripped before hashing. Accept the stripped form
+        # too, so accounts created that way can still log in.
+        if self.verify_password_hash(password):
+            return True
+        return isinstance(password, str) and password != password.strip() \
+            and self.verify_password_hash(password.strip())
 
     def __repr__(self):
 

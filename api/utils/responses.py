@@ -14,13 +14,13 @@ NOT_ADMIN = {"http_code": 403, "code": "test_stat", "message": "Admin permission
 UNAUTHORIZED_401 = {"http_code": 401, "code": "test_stat", "message": "Missing or invalid access token."}
 HEADER_NOT_FOUND = {"http_code": 999, "code": "test_stat", "message": "Header does not exists."}
 PERMISSION_DENIED = {"http_code": 999, "code": "test_stat", "message": "User permissions denied."}
-CREDENTIALS_ERROR_999 = {"http_code": 999, "code": "test_stat", "message": "Credentials error."}
-MISSED_PARAMETERS = {"http_code": 999, "code": "test_stat", "message": "Missed parameters."}
+CREDENTIALS_ERROR_999 = {"http_code": 401, "code": "test_stat", "message": "Credentials error."}
+MISSED_PARAMETERS = {"http_code": 422, "code": "test_stat", "message": "Missed parameters."}
 
 SUCCESS = {"http_code": 200, "code": "test_stat", "message": "SUCCESS."}
 INVALIDATED = {"http_code": 200, "code": "test_stat", "message": "INVALIDATED."}
 ALREADY_INVALIDATED = {"http_code": 200, "code": "test_stat", "message": "INVALIDATED."}
-OLD_PASS_DOES_NOT_MATCH = {"http_code": 999, "code": "test_stat", "message": "Old password does not match."}
+OLD_PASS_DOES_NOT_MATCH = {"http_code": 403, "code": "test_stat", "message": "Old password does not match."}
 REGISTRATION_COMPLETED = {"http_code": 200, "code": "test_stat", "message": "Registration completed."}
 
 
@@ -39,3 +39,6 @@ def m_return(http_code=0, code=None, message=None, value=None):
 
     # Return response.
     return make_response(jsonify(my_dict), http_code)
+
+INVALID_PASSWORD = {"http_code": 422, "code": "test_stat",
+                    "message": "Password must have at least 8 characters and not be only spaces."}

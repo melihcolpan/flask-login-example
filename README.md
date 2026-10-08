@@ -168,14 +168,14 @@ first two.
 
 ```bash
 http POST :5000/v1.0/auth/register \
-  username=alice password=s3cret email=alice@example.com
+  username=alice password=s3cret-pass email=alice@example.com
 ```
 
 ```bash
 # curl version
 curl -X POST http://localhost:5000/v1.0/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"s3cret","email":"alice@example.com"}'
+  -d '{"username":"alice","password":"s3cret-pass","email":"alice@example.com"}'
 ```
 
 ### 2. Login
@@ -188,7 +188,7 @@ http POST :5000/v1.0/auth/login email=alice@example.com password=s3cret
 # curl version
 curl -X POST http://localhost:5000/v1.0/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"alice@example.com","password":"s3cret"}'
+  -d '{"email":"alice@example.com","password":"s3cret-pass"}'
 ```
 
 Response — the tokens are under `value`:
@@ -221,7 +221,7 @@ http POST :5000/v1.0/auth/refresh refresh_token=<REFRESH_TOKEN>
 ```bash
 http POST :5000/v1.0/auth/password_change \
   Authorization:"Bearer <ACCESS_TOKEN>" \
-  old_pass=s3cret new_pass=ev3nm0resecret
+  old_pass=s3cret-pass new_pass=ev3nm0resecret
 ```
 
 ### 6. Logout (invalidate a refresh token)
@@ -255,6 +255,13 @@ This example follows a few basic good practices:
 - **No hardcoded secrets** — token secrets and `SECRET_KEY` come from the
   environment, and the app won't start without them.
 - **Passwords are hashed** with PBKDF2-SHA256; plaintext is never stored.
+- **A password policy** — on registration and password change, a password must
+  have at least 8 characters and not be only spaces. Passwords are used
+  exactly as typed; leading and trailing spaces are part of the password.
+- **Login doesn't leak which emails exist** — an unknown email and a wrong
+  password get the same 401 response.
+- **Roles are checked on every request** — admin-only routes deny by default:
+  a missing or invalid token gets 401, a token without the role gets 403.
 - **No default accounts by default** — demo users only exist when you opt in
   with `SEED_DEMO_USERS=true`.
 - **Debug is off by default** — enable it only locally with
