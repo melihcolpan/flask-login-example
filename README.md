@@ -181,7 +181,7 @@ curl -X POST http://localhost:5000/v1.0/auth/register \
 ### 2. Login
 
 ```bash
-http POST :5000/v1.0/auth/login email=alice@example.com password=s3cret
+http POST :5000/v1.0/auth/login email=alice@example.com password=s3cret-pass
 ```
 
 ```bash
