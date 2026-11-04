@@ -1,4 +1,4 @@
-apispec==6.10.0
+apispec==6.10.1
 apispec-webframeworks==1.2.0
 click==8.5.0
 Flask==3.1.3
