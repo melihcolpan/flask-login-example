@@ -11,7 +11,7 @@ limits==5.8.0
 MarkupSafe==3.0.4
 nose2==0.16.0
 passlib==1.7.4
-PyYAML==6.0.3
+PyYAML==6.0.4
 six==1.17.0
 SQLAlchemy==2.1.4
 Werkzeug==3.1.9
