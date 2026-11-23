@@ -10,7 +10,7 @@ Jinja2==3.1.6
 limits==5.8.0
 MarkupSafe==3.0.4
 nose2==0.16.0
-passlib==1.7.4
+passlib==1.9.5
 PyYAML==6.0.3
 six==1.17.0
 SQLAlchemy==2.1.4
